@@ -5,6 +5,7 @@ const {
   getAllUser,
   assignTask,
   unAssignTask,
+  getUserTask,
 } = require("../controllers/user.controller.js");
 const { body, query, oneOf } = require("express-validator");
 // const { sendResponse } = require("../helpers/utils.js");
@@ -22,14 +23,8 @@ router.get("/", getAllUser);
  * @description Get user by id
  * @access public
  */
-// router.get("/:id");
-/**
- *  @route GET api/users/:id
- * @description Get user by id
- * @access public
- */
+router.get("/:userTarget", getUserTask);
 
-// router.get("/:name");
 /**
  * @route POST api/users
  * @description Create new user

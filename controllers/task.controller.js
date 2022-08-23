@@ -62,10 +62,21 @@ taskController.getAllTask = async (req, res, next) => {
 taskController.getTaskDetail = async (req, res, next) => {
   try {
     const { taskTarget } = req.params;
-    console.log("check", typeof taskTarget);
-    const taskDetail = await Task.find({
-      $or: [{ _id: taskTarget }],
-    });
+
+    let taskDetail = {};
+    if (mongoose.isValidObjectId(taskTarget)) {
+      taskDetail = await Task.findOne({
+        $or: [
+          { _id: mongoose.Types.ObjectId(taskTarget) },
+          { name: taskTarget },
+        ],
+      });
+    } else {
+      taskDetail = await Task.findOne({
+        $or: [{ name: taskTarget }],
+      });
+    }
+
     sendResponse(res, 200, true, { data: taskDetail }, null, `Get detail task`);
   } catch (error) {
     next(error);
@@ -78,12 +89,20 @@ taskController.updateTaks = async (req, res, next) => {
     const { status } = req.body;
     // let check = await Task.findOne({ name: taskName, status: "done" });
     // console.log("check", check);
+    let check = await Task.findOne({ name: taskName });
+    if (status === check.status)
+      throw new AppError(404, "Nothing updated", "Update error");
     let find = await Task.findOneAndUpdate(
-      { name: taskName }
-      // { status: status },
-      // { new: true }
+      { name: taskName },
+      {
+        status:
+          check.status === "done" || check.status === "archive"
+            ? "archive"
+            : status,
+      },
+      { new: true }
     );
-    console.log("find", find);
+
     sendResponse(
       res,
       200,

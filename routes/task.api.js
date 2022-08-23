@@ -8,8 +8,7 @@ const {
   updateTaks,
   deletedTask,
 } = require("../controllers/task.controller.js");
-const { body } = require("express-validator");
-const { query } = require("express");
+const { body, query, param } = require("express-validator");
 
 /**
  * @route GET API/tasks

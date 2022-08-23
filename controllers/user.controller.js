@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const { sendResponse, AppError } = require("../helpers/utils");
 const User = require("../models/User.js");
 // const { body, validationResult } = require("express-validator");
@@ -74,15 +75,42 @@ userController.getAllUser = async (req, res, next) => {
   }
 };
 
+userController.getUserTask = async (req, res, next) => {
+  try {
+    const { userTarget } = req.params;
+    let userDetail = {};
+    if (mongoose.isValidObjectId(userTarget)) {
+      userDetail = await User.findOne({
+        $or: [
+          { _id: mongoose.Types.ObjectId(userTarget) },
+          { name: userTarget },
+        ],
+      }).populate("task");
+    } else {
+      userDetail = await User.findOne({
+        $or: [{ name: userTarget }],
+      }).populate("task");
+    }
+
+    sendResponse(res, 200, true, { data: userDetail }, null, `Get detail task`);
+  } catch (error) {
+    next(error);
+  }
+};
+
 userController.assignTask = async (req, res, next) => {
   try {
     const { userName } = req.params;
     const { ref } = req.body;
-    let found = await User.findOne({ name: userName });
-    const refFound = await User.findById(ref);
 
-    found.task = ref;
-    found = await found.save();
+    let check = await User.findOne({ name: userName });
+    if (check.task.includes(ref))
+      throw new AppError(404, "User haven this task");
+    let found = await User.findOneAndUpdate(
+      { name: userName },
+      { $push: { task: ref } },
+      { new: true }
+    ).sort({ updateAt: -1 });
     sendResponse(res, 200, true, { data: found }, null, "Assign task success!");
   } catch (error) {
     next(error);
@@ -92,13 +120,15 @@ userController.assignTask = async (req, res, next) => {
 userController.unAssignTask = async (req, res, next) => {
   try {
     const { userName } = req.params;
-    const { ref } = req.body;
-    let found = await User.findOne({ name: userName });
-    if (!found.task || found.task === null)
+    let { ref } = req.body;
+    let check = await User.findOne({ name: userName });
+    if (!check.task.includes(ref))
       throw new AppError(404, "User have not task", "UnAssign error");
-    found = await User.findOneAndUpdate(
-      { name: userName, task: ref },
-      { task: null },
+    const result = check.task.filter((e) => e.toString() !== ref);
+
+    let found = await User.findOneAndUpdate(
+      { name: userName },
+      { task: result },
       { new: true }
     );
 
